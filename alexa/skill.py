@@ -18,15 +18,6 @@ CLIENT_ID = os.environ['TT_CLIENT_ID']
 # --------------- Helpers that build all of the responses ----------------------
 
 
-def sequence_to_oxford_string(l):
-    if len(l) > 2:
-        return ', '.join([str(i) for i in l[:-1]]) + ", and " + str(l[-1])
-    elif len(l) == 2:
-        return ' and '.join([str(i) for i in l])
-    elif len(l) > 0:
-        return str(l[0])
-
-
 def build_speechlet_response(title, output, reprompt_text, should_end_session):
     return {
         'outputSpeech': {

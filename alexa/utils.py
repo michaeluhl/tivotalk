@@ -48,3 +48,12 @@ def parse_time(amztime):
 
 def parse_duration(amzduration):
     return aniso8601.parse_duration(amzduration)
+
+
+def sequence_to_oxford_string(l):
+    if len(l) > 2:
+        return ', '.join([str(i) for i in l[:-1]]) + ", and " + str(l[-1])
+    elif len(l) == 2:
+        return ' and '.join([str(i) for i in l])
+    elif len(l) > 0:
+        return str(l[0])
