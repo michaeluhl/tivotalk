@@ -144,7 +144,6 @@ class IntentRequest(Request):
     def get_slots(self):
         try:
             raw_slots = self.j['request']['intent']['slots']
-            print(raw_slots)
             return {k: v['value'] for k, v in raw_slots.items() if 'value' in v}
         except KeyError:
             pass
@@ -155,7 +154,6 @@ class Skill(object):
 
     def __init__(self):
         self._app_id = None
-        self.__intent_handlers = {}
 
     def on_session_start(self, request):
         logger.info('Starting new session.')
@@ -170,14 +168,6 @@ class Skill(object):
     def on_default_intent_request(self, request):
         logger.info('Received un-handled IntentRequest: {}'.format(request.intent_name))
         return Response.respond("I'm afraid that I didn't understand that request, please try again.").add_reprompt()
-
-    def intent(self, intent_name):
-
-        def intent_decorator(f):
-            self.__intent_handlers[intent_name] = f
-            return f
-
-        return intent_decorator
 
     def handler(self, event, context):
 
