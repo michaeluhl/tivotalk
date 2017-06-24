@@ -60,17 +60,19 @@ class Communicator(SubscribeCallback):
             self.subscribe_channel = tmp
 
     def connect(self):
-        self.pn = PubNub(self.config)
-        if self.debug:
-            import pubnub
-            pubnub.set_stream_logger('pubnub', logging.DEBUG)
-        self.pn.add_listener(self)
-        self.pn.subscribe().channels(self.subscribe_channel).execute()
+        if not self.connected.is_set():
+            self.pn = PubNub(self.config)
+            if self.debug:
+                import pubnub
+                pubnub.set_stream_logger('pubnub', logging.DEBUG)
+            self.pn.add_listener(self)
+            self.pn.subscribe().channels(self.subscribe_channel).execute()
 
     def disconnect(self):
-        msg = {'cmd': 'STOP',
-               'key': self.stop_key}
-        self.pn.publish().channel(self.subscribe_channel).message(msg).sync()
+        if self.connected.is_set():
+            msg = {'cmd': 'STOP',
+                   'key': self.stop_key}
+            self.pn.publish().channel(self.subscribe_channel).message(msg).sync()
 
     def wait_for_message(self, timeout=1.0):
         if self.connected.is_set():
