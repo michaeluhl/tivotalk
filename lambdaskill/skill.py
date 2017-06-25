@@ -187,10 +187,30 @@ class Skill(object):
         elif request.request_type == "LaunchRequest":
             response = self.on_launch_request(event['request'])
         elif isinstance(request, IntentRequest):
-            f = getattr(self, "do_{}".format(request.intent_name.lower()), self.on_default_intent_request)
+            f = getattr(self, self.mangle(request.intent_name), self.on_default_intent_request)
             response = f(request)
 
         return response.prepare(session_attributes=request.session_attributes)
+
+    @staticmethod
+    def mangle(intent_name):
+        return "do_" + intent_name.lower().replace("amazon.", "AMZ_") \
+            .replace("<", "_LT_") \
+            .replace(">", "_GT") \
+            .replace("@", "_AT_") \
+            .replace("[", "_LB_") \
+            .replace("]", "_RB_")
+
+    @classmethod
+    def intent(cls, intent_name):
+
+        mangled = cls.mangle(intent_name)
+
+        def decorator(f):
+            setattr(cls, mangled, f)
+            return f
+
+        return decorator
 
     @classmethod
     def get_handler(cls):
