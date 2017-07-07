@@ -37,6 +37,10 @@ def parse_date(amzdate):
                                 month=1,
                                 day=1) - datetime.timedelta(days=1)
         return start, end
+    elif amzdate == 'PRESENT_REF':
+        start = datetime.datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        end = start + datetime.timedelta(days=1)
+        return start, end
     return aniso8601.parse_date(amzdate)
 
 
