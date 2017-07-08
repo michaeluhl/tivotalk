@@ -1,8 +1,12 @@
+import arrow
+import datetime
 import logging
+import time
 
 from tivotalk.server.pubcom import Communicator
 import tivotalk.mind.api as api
 import tivotalk.mind.rpc as rpc
+import lambdaskill.utils as utils
 
 
 logger = logging.getLogger('tivoproxy')
@@ -11,6 +15,9 @@ sh.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 logger.addHandler(sh)
 if logger.level == logging.NOTSET:
     logger.setLevel(logging.WARNING)
+
+
+LOCAL_TZ = time.tzname[time.localtime().tm_isdst]
 
 
 class TiVoProxy(object):
@@ -24,6 +31,7 @@ class TiVoProxy(object):
                                 config['TT_SUBKEY'],
                                 client_id=config['TT_CLIENT_ID'])
         self.com.swap_channels()
+        self.tz = config.get('TT_TIVO_TZ', LOCAL_TZ)
 
     def run(self):
         self.com.connect()
@@ -64,6 +72,36 @@ class TiVoProxy(object):
             result = m.send_key('advance')
             return {'cmd': msg['cmd'], 'status': result['type'].upper()}
 
+    def do_cmd_whatson(self, msg):
+        with self.manager.mind() as m:
+            dates = utils.parse_date(msg.get('rec_time'))
+            if not isinstance(dates, tuple):
+                dates = (dates, dates + datetime.timedelta(days=1))
+            start = arrow.get(dates[0], self.tz)
+            end = arrow.get(dates[1], self.tz)
+            f = api.SearchFilter()
+            f.set_response_template([{"type": "responseTemplate",
+                                      "typeName": "recording",
+                                      "fieldName": ["title", "contentId", "scheduledStartTime"]}])
+            recordings = m.recording_search(filt=f)
+            result = [(r['title'], r['contentId']) for r in recordings if arrow.get(r['scheduledStartTime']) >= start and arrow.get(r['scheduledStartTime']) <= end]
+            return {'cmd': msg['cmd'], 'status': 'SUCCESS', 'recordings': result, 'total_count': len(result)}
+
+    def do_cmd_tellabout(self, msg):
+        fields = ["title", "subtitle", "seasonNumber", "episodeNum", "description"]
+        with self.manager.mind() as m:
+            details = []
+            for id in msg['content_ids']:
+                f = api.SearchFilter()
+                f.by_content_id(id)
+                f.set_response_template([{"type": "responseTemplate",
+                                          "typeName": "content",
+                                          "fieldName": fields}])
+                content = m.content_search(filt=f, limit=1)
+                if len(content) > 0:
+                    content = content[0]
+                details.append({k: content.get(k, None) for k in fields})
+            return {'cmd': msg['cmd'], 'status': 'SUCCESS', 'details': details, 'total_count': len(details)}
 
 
 if __name__ == '__main__':

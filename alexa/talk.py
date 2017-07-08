@@ -1,3 +1,4 @@
+from io import StringIO
 import os
 
 import lambdaskill.utils as utils
@@ -12,6 +13,16 @@ SKILL_ID = os.environ['TT_SKILL_ID']
 
 class CommandError(Exception):
     pass
+
+
+def content_formatter(content):
+    if all([content[k] for k in ('episodeNum', 'seasonNumber', 'subtitle')]):
+        try:
+            content['episodeNum'] = content['episodeNum'][0]
+        except IndexError:
+            pass
+        return "{title} (Season {seasonNumber}, Episode {episodeNum}): {subtitle}.\n{description}.\n".format(**content)
+    return "{title}.\n{description}\n".format(**content)
 
 
 class TiVoTalk(Skill):
@@ -67,8 +78,10 @@ class TiVoTalk(Skill):
             com.publish(message=message)
             resp = com.wait_for_message(timeout=3.0).message
             if resp['cmd'] == message['cmd'] and resp['status'] == 'SUCCESS':
+                if 'payload' in resp:
+                    return resp['payload']
                 return
-            raise CommandError('An error occured while executing the command.')
+            raise CommandError('An error occurred while executing the command.')
         raise ConnectionError('Failed to connect to remote server.')
 
     def exec_cmd(self, message):
@@ -91,8 +104,39 @@ class TiVoTalk(Skill):
         recordings = self.exec_list_cmd(message={'cmd': 'WHATSON',
                                                  'rec_time': recording_time},
                                         list_key='recordings')
-        output = "I'm recording the following items: {}".format(utils.sequence_to_oxford_string(recordings))
+        titles = [r[0] for r in recordings]
+        output = "I'm recording the following items: {}".format(utils.sequence_to_oxford_string(titles))
+        request.session_attributes['content'] = recordings
         return Response.respond(output=output).add_card(title='ToDo:')
+
+    def do_tellaboutintent(self, request):
+        """Queries the TiVo to get the details about a piece of content.
+        """
+
+        slots = request.get_slots()
+
+        title = slots.get('MOVIE_TITLE', None)
+        if title is None:
+            title = slots.get('TV_TITLE', None)
+
+        if title is None:
+            return Response.respond("I'm sorry, I didn't catch that title.  "
+                                    "Please try that request again.").add_reprompt()
+        if 'content' not in request.session_attributes:
+            return Response.respond("You must ask about upcoming shows before asking for details.")
+        content = request.session_attributes['content']
+        ids = [i for t, i in content if t.lower() == title.lower()]
+        if len(ids) < 1:
+            return Response.respond("The requested title is not in the results of the most recent search.")
+
+        details = self.exec_list_cmd(message={'cmd': 'TELLABOUT',
+                                              'content_ids': ids},
+                                     list_key='details')
+
+        response = StringIO()
+        for detail in details:
+            response.write(content_formatter(detail))
+        return Response.respond(response.getvalue()).add_card(title="Details:")
 
     def do_pauseintent(self, request):
         self.exec_cmd_check(message={'cmd': 'PAUSE'})
