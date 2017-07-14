@@ -16,3 +16,9 @@ cd ${LIB_DIR}
 zip -r ${BUILD_DIR}/skill.zip * -x '*__pycache__*'
 cd ${SKILL_DIR}
 zip -u ${BUILD_DIR}/skill.zip *.py
+
+if [[ "$#" -ge 1 ]]; then
+	aws lambda update-function-code --function-name "$1" --zip-file fileb://${BUILD_DIR}/skill.zip ;
+fi
+cd ${BUILD_DIR}
+${SCRIPT_ROOT}/model_parser.py ${SKILL_DIR}/interaction_model.py
