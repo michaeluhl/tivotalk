@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from ast import literal_eval
 import json
-import os.path
 import re
 import sys
 
@@ -35,7 +33,7 @@ def main(args):
     utterances = []
     with open(args.model[0], 'rt') as source:
         try:
-            schema = literal_eval(source.read())['schema']
+            schema = json.load(source)['schema']
         except KeyError:
             print("Invalid Model Definition.")
             sys.exit(1)

@@ -21,4 +21,4 @@ if [[ "$#" -ge 1 ]]; then
 	aws lambda update-function-code --function-name "$1" --zip-file fileb://${BUILD_DIR}/skill.zip ;
 fi
 cd ${BUILD_DIR}
-${SCRIPT_ROOT}/model_parser.py ${SKILL_DIR}/interaction_model.py
+${SCRIPT_ROOT}/model_parser.py ${SKILL_DIR}/interaction_model.json

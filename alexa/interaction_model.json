@@ -41,6 +41,34 @@
                 ]
             },
             {
+                "slots": [
+                    {
+                        "name": "MOVIE_TITLE",
+                        "type": "AMAZON.Movie"
+                    },
+                    {
+                        "name": "TV_TITLE",
+                        "type": "AMAZON.TVSeries"
+                    },
+                    {
+                        "name": "CHANNEL_NAME",
+                        "type": "AMAZON.TelevisionChannel"
+                    },
+                    {
+                        "name": "CHANNEL_NUMBER",
+                        "type": "AMAZON.NUMBER"
+                    },
+                    {
+                        "name": "RECORDING_DATE",
+                        "type": "AMAZON.DATE"
+                    }
+                ],
+                "intent": "WhenIsIntent",
+                "utterances": [
+                    "<When is|When's|What time is> <{MOVIE_TITLE}|{TV_TITLE}>< on| on <channel |><{CHANNEL_NAME}|{CHANNEL_NUMBER}>>< {RECORDING_DATE}|>"
+                ]
+            },
+            {
                 "intent": "PauseIntent",
                 "utterances": [
                     "<Pause|Stop|Halt|Wait>"
