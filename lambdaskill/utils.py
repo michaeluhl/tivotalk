@@ -41,7 +41,9 @@ def parse_date(amzdate):
         start = datetime.datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         end = start + datetime.timedelta(days=1)
         return start, end
-    return aniso8601.parse_date(amzdate)
+    start = datetime.datetime.combine(aniso8601.parse_date(amzdate), datetime.datetime.min.time())
+    end = start + datetime.timedelta(days=1)
+    return start, end
 
 
 def parse_time(amztime):
