@@ -1,4 +1,5 @@
 import configparser
+import json
 
 import arrow
 
@@ -13,10 +14,10 @@ if __name__ == "__main__":
     address = config['DEFAULT']['address']
     mak = config['DEFAULT']['mak']
     sm = rpc.SocketMaker("cdata.pem", cert_pass)
-    # cred = rpc.MRPCCredential.new_mak(mak=mak)
-    cred = rpc.MRPCCredential.new_web(config['DEFAULT']['username'],
-                                      config['DEFAULT']['password'],
-                                      'Ada')
+    cred = rpc.MRPCCredential.new_mak(mak=mak)
+    # cred = rpc.MRPCCredential.new_web(config['DEFAULT']['username'],
+    #                                   config['DEFAULT']['password'],
+    #                                   'Ada')
     session = rpc.MRPCSession(sm, address=address, credential=cred, debug=False)
     session.connect()
     mind = api.Mind(session)
@@ -33,4 +34,12 @@ if __name__ == "__main__":
     collections = mind.collection_search(filt=f, limit=1)
     col = collections[0]
     print('{}'.format(col['description']))
+    f = api.SearchFilter()
+    f.by_content_id(content_id="tivo:ct.280853535")
+    # f.by_title(title="Guardians of the Galaxy")
+    content = mind.content_search(filt=f, limit=1)
+    print(content[0])
+    channels = mind.channel_search()
+    with open('channels.json', 'wt') as cf:
+        json.dump(channels, cf, indent=4)
     session.close()

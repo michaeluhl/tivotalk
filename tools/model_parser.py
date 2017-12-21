@@ -47,7 +47,7 @@ def main(args):
         for utterance in utterances:
             u_file.write("{}\n".format(utterance))
     with open(args.schema, "wt") as i_file:
-        json.dump(schema, i_file, indent=4)
+        json.dump(schema, i_file, indent=2)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 from io import StringIO
 import os
 
+import arrow
+
 import lambdaskill.utils as utils
 from lambdaskill import *
 from tivotalk.server.pubcom import Communicator
@@ -51,7 +53,6 @@ class TiVoTalk(Skill):
             req = Request.wrap(event)
             resp = Response.finish("Failed to connect to TiVo Proxy.  Try again in a few moments.")
             return resp.prepare(session_attributes=req.session_attributes)
-
 
     def exec_list_cmd(self, message, list_key):
         com = self.com
@@ -108,6 +109,39 @@ class TiVoTalk(Skill):
         output = "I'm recording the following items: {}".format(utils.sequence_to_oxford_string(titles))
         request.session_attributes['content'] = recordings
         return Response.respond(output=output).add_card(title='ToDo:')
+
+    def do_whenisintent(self, request):
+
+        slots = request.get_slots()
+
+        title = slots.get('MOVIE_TITLE') or slots.get('TV_TITLE')
+        if title is None:
+            return Response.respond("I'm sorry, I didn't catch that title.  "
+                                    "Please try that request again.").add_reprompt()
+        c_name = slots.get('CHANNEL_NAME', None)
+        c_num = slots.get('CHANNEL_NUMBER', None)
+
+        recording_time = slots.get('RECORDING_DATE') or 'PRESENT_REF'
+        recording_time = recording_time if recording_time != "" else 'PRESENT_REF'
+
+        offers = self.exec_list_cmd(message={'cmd': 'WHENIS',
+                                             'title': title,
+                                             'c_name': c_name,
+                                             'c_num': c_num,
+                                             'rec_time': recording_time},
+                                    list_key='offers')
+        if not offers:
+            return Response.respond("I did not find any showings of {}.".format(title))
+        request.session_attributes['content'] = offers
+        showings = []
+        for o in offers:
+            start = arrow.get(o['startTime']).replace(tzinfo='UTC').to('US/Eastern')
+            showing = "at {} - {}".format(start.strftime("%I:%M %p"), o['subtitle'])
+            if not (c_name or c_num):
+                showing += " on {}".format(o['channel'])
+            showings.append(showing)
+        shows = utils.sequence_to_oxford_string(showings)
+        return Response.respond("I found the following showings: {}".format(shows)).add_card(title='Showings')
 
     def do_tellaboutintent(self, request):
         """Queries the TiVo to get the details about a piece of content.
